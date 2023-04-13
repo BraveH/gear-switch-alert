@@ -7,5 +7,11 @@ TODO Next:
 - Add profiles so that you can set specific gear item type based on specific PvM content
 
 ![melee_gear_missing.png](melee_gear_missing.png)
+
 ![ranged_gear_missing.png](ranged_gear_missing.png)
+
 ![magic_gear_missing.png](magic_gear_missing.png)
+
+![set_gear_type.png](set_gear_type.png)
+
+![config_panel.png](config_panel.png)
