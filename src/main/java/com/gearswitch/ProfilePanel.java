@@ -59,7 +59,7 @@ class ProfilePanel extends JPanel {
     JLabel collapseBtn;
 
     private final JPanel tagsContainer = new JPanel();
-    private String profileUUID;
+    private final String profileUUID;
     private final Cache<Long, Image> fillCache;
 
     static {
@@ -83,7 +83,7 @@ class ProfilePanel extends JPanel {
         PLUS_ICON_HOVER =  new ImageIcon(ImageUtil.alphaOffset(plusIcon, 0.50f));
     }
 
-    ProfilePanel(ClientThread clientThread, GearSwitchAlertPlugin plugin, ItemManager itemManager, Gson gson, GearSwitchAlertPanel panel, String profileUUID, String profileName) {
+    ProfilePanel(ClientThread clientThread, GearSwitchAlertPlugin plugin, ItemManager itemManager, GearSwitchAlertPanel panel, String profileUUID, String profileName) {
         super();
 
         fillCache = CacheBuilder.newBuilder()
@@ -274,34 +274,26 @@ class ProfilePanel extends JPanel {
 
             final JMenuItem meleeToggle = new JMenuItem(tag.isMeleeGear ? "Unset Melee Gear" : "Set Melee Gear");
             meleeToggle.addActionListener(e ->
-            {
-                plugin.toggleGearTag(item, true, false, false);
-            });
+                    plugin.toggleGearTag(item, true, false, false));
 
             final JMenuItem rangeToggle = new JMenuItem(tag.isRangeGear ? "Unset Range Gear" : "Set Range Gear");
             rangeToggle.addActionListener(e ->
-            {
-                plugin.toggleGearTag(item, false, true, false);
-            });
+                    plugin.toggleGearTag(item, false, true, false));
 
             final JMenuItem magicToggle = new JMenuItem(tag.isMagicGear ? "Unset Magic Gear" : "Set Magic Gear");
             magicToggle.addActionListener(e ->
-            {
-                plugin.toggleGearTag(item, false, false, true);
-            });
+                    plugin.toggleGearTag(item, false, false, true));
 
             final JMenuItem removeTag = new JMenuItem("Remove Tag");
             removeTag.addActionListener(e ->
-            {
-                plugin.removeTag(item.itemID, profileUUID);
-            });
+                    plugin.removeTag(item.itemID, profileUUID));
 
             popupMenu.add(meleeToggle);
             popupMenu.add(rangeToggle);
             popupMenu.add(magicToggle);
             popupMenu.add(removeTag);
 
-            String enabledTagsText = "";
+            String enabledTagsText;
             if(!tag.isMeleeGear && !tag.isRangeGear && !tag.isMagicGear) {
                 enabledTagsText = "No Tags Set";
             } else {

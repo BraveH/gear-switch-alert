@@ -16,6 +16,7 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.font.TextAttribute;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -28,7 +29,6 @@ public class GearSwitchAlertPanel extends PluginPanel {
     private final Gson gson;
     private final ItemManager itemManager;
 
-    private final JLabel titleLabel;
     private final IconTextField searchBar;
     private final JPanel listContainer = new JPanel();
     public final GearSwitchAlertConfig config;
@@ -47,10 +47,10 @@ public class GearSwitchAlertPanel extends PluginPanel {
         this.config = config;
 
         Font font = FontManager.getRunescapeFont();
-        Map<TextAttribute,Integer> attributes = (Map<TextAttribute, Integer>) font.getAttributes();
+        Map<TextAttribute, Integer> attributes = new HashMap<>();
         attributes.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
 
-        this.titleLabel = new JLabel("Dynamic Inventory Tags");
+        JLabel titleLabel = new JLabel("Dynamic Inventory Tags");
         titleLabel.setFont(font.deriveFont(Font.BOLD, 48.0f).deriveFont(attributes));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(titleLabel);
@@ -84,7 +84,7 @@ public class GearSwitchAlertPanel extends PluginPanel {
 //        listContainer.setLayout(new GridLayout(0, 1, 0, 0));
         listContainer.setLayout(new BoxLayout(listContainer, BoxLayout.Y_AXIS));
 
-        NewProfileManager newProfileManager = new NewProfileManager(plugin, gson, this);
+        NewProfileManager newProfileManager = new NewProfileManager(plugin, this);
 
         add(newProfileManager);
 
@@ -109,7 +109,7 @@ public class GearSwitchAlertPanel extends PluginPanel {
         for (Map.Entry<String, String> profile : profiles.entrySet().stream().sorted(this::sortProfiles).collect(Collectors.toList())) {
             if (Strings.isNullOrEmpty(search) || profile.getValue().toLowerCase().contains(search.toLowerCase())) {
                 String key = profile.getKey();
-                ProfilePanel tile = new ProfilePanel(clientThread, plugin, itemManager, gson, this, key, profile.getValue());
+                ProfilePanel tile = new ProfilePanel(clientThread, plugin, itemManager, this, key, profile.getValue());
                 if(!key.equals(selectedProfile)) {
                     addMouseListener(key, tile);
                 }

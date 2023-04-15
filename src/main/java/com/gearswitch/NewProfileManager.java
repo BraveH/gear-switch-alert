@@ -13,9 +13,8 @@ import java.awt.*;
 public class NewProfileManager extends PluginPanel {
     private final JLabel inputLabel;
     private final FlatTextField nameInput;
-    private final JButton addProfileButton;
 
-    NewProfileManager(GearSwitchAlertPlugin plugin, Gson gson, GearSwitchAlertPanel panel) {
+    NewProfileManager(GearSwitchAlertPlugin plugin, GearSwitchAlertPanel panel) {
         super();
 
         this.inputLabel = new JLabel("Profile Name");
@@ -28,7 +27,7 @@ public class NewProfileManager extends PluginPanel {
         nameInput.setMinimumSize(new Dimension(0, 30));
         add(nameInput);
 
-        addProfileButton = new JButton();
+        JButton addProfileButton = new JButton();
         addProfileButton.setText("Add Profile");
         addProfileButton.setHorizontalAlignment(JLabel.CENTER);
         addProfileButton.setFocusable(false);

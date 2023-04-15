@@ -47,7 +47,7 @@ import static com.gearswitch.AttackStyle.*;
 )
 public class GearSwitchAlertPlugin extends Plugin
 {
-	public static Map<String, String> profiles = new HashMap<String, String>();
+	public static Map<String, String> profiles = new HashMap<>();
 
 	@Inject
 	private Client client;
@@ -124,14 +124,12 @@ public class GearSwitchAlertPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(final ConfigChanged event) {
 		if (event.getGroup().equals(GearSwitchAlertConfig.GROUP)) {
-			switch (event.getKey()) {
-				case "hidePlugin":
-					if (config.hidePlugin()) {
-						clientToolbar.removeNavigation(navButton);
-					} else {
-						clientToolbar.addNavigation(navButton);
-					}
-					break;
+			if (event.getKey().equals("hidePlugin")) {
+				if (config.hidePlugin()) {
+					clientToolbar.removeNavigation(navButton);
+				} else {
+					clientToolbar.addNavigation(navButton);
+				}
 			}
 		}
 	}
@@ -367,27 +365,21 @@ public class GearSwitchAlertPlugin extends Plugin
 								.setType(MenuAction.RUNELITE)
 								.setParent(parent)
 								.onClick(e ->
-								{
-									toggleGearTag(gearTagSettings, finalItemId, true, false, false);
-								});
+										toggleGearTag(gearTagSettings, finalItemId, true, false, false));
 					} else if (i == 1) {
 						client.createMenuEntry(idx)
 								.setOption(ColorUtil.prependColorTag(isRangeEnabled ? "Unset Range Gear" : "Set Range Gear", config.defaultColourRanged()))
 								.setType(MenuAction.RUNELITE)
 								.setParent(parent)
 								.onClick(e ->
-								{
-									toggleGearTag(gearTagSettings, finalItemId, false, true, false);
-								});
+										toggleGearTag(gearTagSettings, finalItemId, false, true, false));
 					} else {
 						client.createMenuEntry(idx)
 								.setOption(ColorUtil.prependColorTag(isMagicEnabled ? "Unset Magic Gear" : "Set Magic Gear", config.defaultColourMagic()))
 								.setType(MenuAction.RUNELITE)
 								.setParent(parent)
 								.onClick(e ->
-								{
-									toggleGearTag(gearTagSettings, finalItemId, false, false, true);
-								});
+										toggleGearTag(gearTagSettings, finalItemId, false, false, true));
 					}
 				}
 			}
@@ -443,7 +435,7 @@ public class GearSwitchAlertPlugin extends Plugin
 		String json = configManager.getConfiguration(GearSwitchAlertConfig.GROUP, PROFILES_PREFIX);
 
 		if (Strings.isNullOrEmpty(json)) {
-			return new HashMap<String, String>();
+			return new HashMap<>();
 		}
 		return gson.fromJson(json, new TypeToken<Map<String, String>>() {
 		}.getType());
@@ -463,7 +455,7 @@ public class GearSwitchAlertPlugin extends Plugin
 	public String addProfile(String name) {
 		int customId = loadCustomId() + 1;
 		Map<String, String> customProfiles = loadCustomProfiles();
-		String newID = ID_PREFIX + Integer.toString(customId);
+		String newID = ID_PREFIX + customId;
 		customProfiles.put(newID, name);
 
 		String json = gson.toJson(customProfiles);
@@ -548,7 +540,6 @@ public class GearSwitchAlertPlugin extends Plugin
 		itemSearch
 			.tooltipText("Add item tag")
 			.onItemSelected((itemId) ->
-			{
 				clientThread.invokeLater(() ->
 				{
 					int finalId = itemManager.canonicalize(itemId);
@@ -562,8 +553,7 @@ public class GearSwitchAlertPlugin extends Plugin
 								"Cannot Add Item Tag",
 								JOptionPane.ERROR_MESSAGE));
 					}
-				});
-			})
+				}))
 			.build();
 	}
 
