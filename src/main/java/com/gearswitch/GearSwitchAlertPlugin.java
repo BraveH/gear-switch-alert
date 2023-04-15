@@ -1,7 +1,10 @@
 package com.gearswitch;
 
+import com.google.common.base.Strings;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.google.inject.Provides;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.ItemContainerChanged;
@@ -10,17 +13,31 @@ import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetInfo;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.SpriteManager;
+import net.runelite.client.game.chatbox.ChatboxItemSearch;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
+import net.runelite.client.util.ImageUtil;
 import net.runelite.http.api.item.ItemEquipmentStats;
 import net.runelite.http.api.item.ItemStats;
 
 import javax.inject.Inject;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.gearswitch.AttackStyle.*;
 
@@ -30,6 +47,8 @@ import static com.gearswitch.AttackStyle.*;
 )
 public class GearSwitchAlertPlugin extends Plugin
 {
+	public static Map<String, String> profiles = new HashMap<String, String>();
+
 	@Inject
 	private Client client;
 
@@ -43,7 +62,7 @@ public class GearSwitchAlertPlugin extends Plugin
 	private GearSwitchAlertConfig config;
 
 	@Inject
-	private GearsInventoryTagsOverlay overlay;
+	public GearsInventoryTagsOverlay overlay;
 
 	@Inject
 	private OverlayManager overlayManager;
@@ -51,24 +70,72 @@ public class GearSwitchAlertPlugin extends Plugin
 	@Inject
 	private Gson gson;
 
+	@Inject
+	private ClientToolbar clientToolbar;
+	@Inject
+	private ClientThread clientThread;
+
+	@Inject
+	private SpriteManager spriteManager;
+
+	@Inject
+	@Getter
+	private ChatboxItemSearch itemSearch;
 
 	private AttackType attackType;
 	private boolean isCurrentTwoHanded;
 	private static final String TAG_KEY_PREFIX = "gear_tag_";
+	private static final String PROFILES_PREFIX = "gear_profiles";
+	private static final String SELECTED_PROFILE_PREFIX = "gear_selected_profile";
+	private static final String CUSTOM_ID = "customId";
+	private static final String ID_PREFIX = "ID";
+
+	private GearSwitchAlertPanel panel;
+	private NavigationButton navButton;
 
 	public AttackType getAttackType() {
 		return attackType;
 	}
 
+	private final Map<Prayer, BufferedImage> prayerSprites = new HashMap<>();
+
 	@Override
 	protected void startUp() throws Exception {
+		clientThread.invoke(this::loadSprites);
+		loadProfiles();
 		overlayManager.add(overlay);
+
+		panel = new GearSwitchAlertPanel(clientThread, this, gson, itemManager, config);
+		final BufferedImage icon = ImageUtil.loadImageResource(GearSwitchAlertPlugin.class, "dynamic_tags_icon.png");
+
+		navButton = NavigationButton.builder()
+				.tooltip("Dynamic Inventory Tags")
+				.icon(icon)
+				.panel(panel)
+				.build();
+		clientToolbar.addNavigation(navButton);
 	}
 
 	@Override
 	protected void shutDown() throws Exception {
 		overlayManager.remove(overlay);
 	}
+
+	@Subscribe
+	public void onConfigChanged(final ConfigChanged event) {
+		if (event.getGroup().equals(GearSwitchAlertConfig.GROUP)) {
+			switch (event.getKey()) {
+				case "hidePlugin":
+					if (config.hidePlugin()) {
+						clientToolbar.removeNavigation(navButton);
+					} else {
+						clientToolbar.addNavigation(navButton);
+					}
+					break;
+			}
+		}
+	}
+
 
 	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged event) {
@@ -143,8 +210,7 @@ public class GearSwitchAlertPlugin extends Plugin
 		}
 	}
 
-	GearTagSettings getTag(int itemId)
-	{
+	GearTagSettings getTag(int itemId) {
 		ItemStats weaponStats = getItemStats(itemId);
 
 		if (weaponStats != null) {
@@ -158,39 +224,101 @@ public class GearSwitchAlertPlugin extends Plugin
 			}
 		}
 
-		String tag = configManager.getConfiguration(GearSwitchAlertConfig.GROUP, TAG_KEY_PREFIX + itemId);
-		if (tag == null || tag.isEmpty())
-		{
+		String profile = loadSelectedProfile();
+		String profilePrefix = profile.equals("0") ? "" : profile + "_";
+		String tag = configManager.getConfiguration(GearSwitchAlertConfig.GROUP, TAG_KEY_PREFIX + profilePrefix + itemId);
+		if (tag == null || tag.isEmpty()) {
 			return null;
 		}
 
 		return gson.fromJson(tag, GearTagSettings.class);
 	}
 
-	void setTag(int itemId, GearTagSettings gearTagSettings)
-	{
+	ArrayList<GearTagSettingsWithItemID> getTagsForProfile(String profileID) {
+		ArrayList<GearTagSettingsWithItemID> result = new ArrayList<>();
+		String profilePrefix = profileID.equals("0") ? "" : profileID + "_";
+
+		List<String> keys = configManager.getConfigurationKeys(GearSwitchAlertConfig.GROUP + "." + TAG_KEY_PREFIX + profilePrefix);
+
+		if (keys == null || keys.isEmpty()) {
+			return result;
+		}
+
+		if(profileID.equals("0")) {
+			for (String key : keys) {
+				String[] split = key.split(TAG_KEY_PREFIX + profilePrefix);
+				boolean isNotDefaultProfileKey = split[1].startsWith(ID_PREFIX);
+				if(!isNotDefaultProfileKey) {
+					String tag = configManager.getConfiguration(GearSwitchAlertConfig.GROUP, TAG_KEY_PREFIX + profilePrefix + split[1]);
+					if(tag != null && !tag.isEmpty()) {
+						GearTagSettings gearTag = gson.fromJson(tag, GearTagSettings.class);
+//						if(gearTag.isMeleeGear || gearTag.isRangeGear || gearTag.isMagicGear) {
+							GearTagSettingsWithItemID tagWithID = new GearTagSettingsWithItemID(gearTag, key, itemManager);
+							result.add(tagWithID);
+//						}
+					}
+				}
+			}
+		} else {
+			for (String key : keys) {
+				String[] split = key.split(TAG_KEY_PREFIX + profilePrefix);
+				String tag = configManager.getConfiguration(GearSwitchAlertConfig.GROUP, TAG_KEY_PREFIX + profilePrefix + split[1]);
+				if(tag != null && !tag.isEmpty()) {
+					GearTagSettings gearTag = gson.fromJson(tag, GearTagSettings.class);
+//					if(gearTag.isMeleeGear || gearTag.isRangeGear || gearTag.isMagicGear) {
+						GearTagSettingsWithItemID tagWithID = new GearTagSettingsWithItemID(gearTag, key, itemManager);
+						result.add(tagWithID);
+//					}
+				}
+			}
+		}
+
+		GearSwitchAlertConfig.SortMethod sortMethod = config.sortItems();
+		if(sortMethod != GearSwitchAlertConfig.SortMethod.NONE) {
+			result.sort((tag1, tag2) -> sortMethod == GearSwitchAlertConfig.SortMethod.ALL_FIRST ?
+					tag2.getWeight() - tag1.getWeight() :
+					tag1.getWeight() - tag2.getWeight() );
+		}
+
+		return result;
+	}
+
+	void setTag(int itemId, GearTagSettings gearTagSettings) {
+		setTag(itemId, gearTagSettings, loadSelectedProfile());
+	}
+
+	void setTag(int itemId, GearTagSettings gearTagSettings, String profileUUID) {
 		String json = gson.toJson(gearTagSettings);
-		configManager.setConfiguration(GearSwitchAlertConfig.GROUP, TAG_KEY_PREFIX + itemId, json);
+		String profilePrefix = profileUUID.equals("0") ? "" : profileUUID + "_";
+		configManager.setConfiguration(GearSwitchAlertConfig.GROUP, TAG_KEY_PREFIX + profilePrefix + itemId, json);
 		overlay.invalidateCache();
+		ProfilePanel tile = panel.getEnabledProfileTile();
+		if(tile != null)
+			clientThread.invokeLater(tile::rebuild);
+	}
+
+	void unsetTag(int itemId) {
+		unsetTag(itemId, loadSelectedProfile());
+	}
+
+	void unsetTag(int itemId, String profileUUID) {
+		String profilePrefix = profileUUID.equals("0") ? "" : profileUUID + "_";
+		configManager.unsetConfiguration(GearSwitchAlertConfig.GROUP, TAG_KEY_PREFIX + profilePrefix + itemId);
 	}
 
 	@Subscribe
-	public void onMenuOpened(final MenuOpened event)
-	{
-		if (!client.isKeyPressed(KeyCode.KC_SHIFT))
-		{
+	public void onMenuOpened(final MenuOpened event) {
+		if (!client.isKeyPressed(KeyCode.KC_SHIFT)) {
 			return;
 		}
 
 		final MenuEntry[] entries = event.getMenuEntries();
-		for (int idx = entries.length - 1; idx >= 0; --idx)
-		{
+		for (int idx = entries.length - 1; idx >= 0; --idx) {
 			final MenuEntry entry = entries[idx];
 			final Widget w = entry.getWidget();
 
 			if (w != null && (WidgetInfo.TO_GROUP(w.getId()) == WidgetID.INVENTORY_GROUP_ID || WidgetInfo.TO_GROUP(w.getId()) == WidgetID.EQUIPMENT_GROUP_ID)
-					&& "Examine".equals(entry.getOption()) && entry.getIdentifier() == 10)
-			{
+					&& "Examine".equals(entry.getOption()) && entry.getIdentifier() == 10) {
 				int itemId = w.getItemId();
 				if(itemId == -1 && w.getChildren() != null) {
 					for (Widget child : w.getChildren()) {
@@ -202,6 +330,11 @@ public class GearSwitchAlertPlugin extends Plugin
 
 				if(itemId == -1)
 					return;
+
+				ItemStats itemStats = itemManager.getItemStats(itemId, false);
+				if(!config.allowTaggingUnequipables() && (itemStats == null || !itemStats.isEquipable())) {
+					return;
+				}
 
 				final GearTagSettings gearTagSettings = getTag(itemId);
 
@@ -235,14 +368,7 @@ public class GearSwitchAlertPlugin extends Plugin
 								.setParent(parent)
 								.onClick(e ->
 								{
-									GearTagSettings newGearTagSettings = gearTagSettings;
-									if (newGearTagSettings == null)
-										newGearTagSettings = new GearTagSettings();
-
-									newGearTagSettings.isMeleeGear = !isMeleeEnabled;
-									newGearTagSettings.isRangeGear = isRangeEnabled;
-									newGearTagSettings.isMagicGear = isMagicEnabled;
-									setTag(finalItemId, newGearTagSettings);
+									toggleGearTag(gearTagSettings, finalItemId, true, false, false);
 								});
 					} else if (i == 1) {
 						client.createMenuEntry(idx)
@@ -251,14 +377,7 @@ public class GearSwitchAlertPlugin extends Plugin
 								.setParent(parent)
 								.onClick(e ->
 								{
-									GearTagSettings newGearTagSettings = gearTagSettings;
-									if (newGearTagSettings == null)
-										newGearTagSettings = new GearTagSettings();
-
-									newGearTagSettings.isMeleeGear = isMeleeEnabled;
-									newGearTagSettings.isRangeGear = !isRangeEnabled;
-									newGearTagSettings.isMagicGear = isMagicEnabled;
-									setTag(finalItemId, newGearTagSettings);
+									toggleGearTag(gearTagSettings, finalItemId, false, true, false);
 								});
 					} else {
 						client.createMenuEntry(idx)
@@ -267,14 +386,7 @@ public class GearSwitchAlertPlugin extends Plugin
 								.setParent(parent)
 								.onClick(e ->
 								{
-									GearTagSettings newGearTagSettings = gearTagSettings;
-									if (newGearTagSettings == null)
-										newGearTagSettings = new GearTagSettings();
-
-									newGearTagSettings.isMeleeGear = isMeleeEnabled;
-									newGearTagSettings.isRangeGear = isRangeEnabled;
-									newGearTagSettings.isMagicGear = !isMagicEnabled;
-									setTag(finalItemId, newGearTagSettings);
+									toggleGearTag(gearTagSettings, finalItemId, false, false, true);
 								});
 					}
 				}
@@ -282,7 +394,201 @@ public class GearSwitchAlertPlugin extends Plugin
 		}
 	}
 
+	public void toggleGearTag(GearTagSettingsWithItemID tag, boolean toggleMelee, boolean toggleRanged, boolean toggleMagic) {
+		toggleGearTag(tag.origTag, tag.itemID, toggleMelee, toggleRanged, toggleMagic);
+	}
+
+	public void toggleGearTag(GearTagSettings tag, int itemId, boolean toggleMelee, boolean toggleRanged, boolean toggleMagic) {
+		GearTagSettings newGearTagSettings = tag;
+		if (newGearTagSettings == null)
+			newGearTagSettings = new GearTagSettings();
+
+		newGearTagSettings.isMeleeGear = toggleMelee != newGearTagSettings.isMeleeGear;
+		newGearTagSettings.isRangeGear = toggleRanged != newGearTagSettings.isRangeGear;
+		newGearTagSettings.isMagicGear = toggleMagic != newGearTagSettings.isMagicGear;
+		setTag(itemId, newGearTagSettings);
+	}
+
 	private ItemStats getItemStats(int itemId) {
 		return itemManager.getItemStats(itemId, false);
+	}
+
+	public String loadSelectedProfile() {
+		String profileID = configManager.getConfiguration(GearSwitchAlertConfig.GROUP, SELECTED_PROFILE_PREFIX);
+
+		if (Strings.isNullOrEmpty(profileID)) {
+			return "0";
+		}
+
+		String ID = gson.fromJson(profileID, new TypeToken<String>() {
+		}.getType());
+
+		if(profiles.containsKey(ID))
+			return ID;
+		else
+			return "0";
+	}
+
+	public void loadProfiles() {
+		Map<String, String> parsed = new HashMap<>();
+		parsed.put("0", "Default");
+		//merge in any custom profiles
+		Map<String, String> customProfiles = loadCustomProfiles();
+		parsed.putAll(customProfiles);
+
+		profiles = parsed;
+	}
+
+	private Map<String, String> loadCustomProfiles() {
+		String json = configManager.getConfiguration(GearSwitchAlertConfig.GROUP, PROFILES_PREFIX);
+
+		if (Strings.isNullOrEmpty(json)) {
+			return new HashMap<String, String>();
+		}
+		return gson.fromJson(json, new TypeToken<Map<String, String>>() {
+		}.getType());
+	}
+
+	Integer loadCustomId() {
+		String json = configManager.getConfiguration(GearSwitchAlertConfig.GROUP, CUSTOM_ID);
+
+		if (Strings.isNullOrEmpty(json)) {
+			//default to 9999 because we add 1, and I want it to start at an even 10k.
+			return 0;
+		}
+		return gson.fromJson(json, new TypeToken<Integer>() {
+		}.getType());
+	}
+
+	public String addProfile(String name) {
+		int customId = loadCustomId() + 1;
+		Map<String, String> customProfiles = loadCustomProfiles();
+		String newID = ID_PREFIX + Integer.toString(customId);
+		customProfiles.put(newID, name);
+
+		String json = gson.toJson(customProfiles);
+		configManager.setConfiguration(GearSwitchAlertConfig.GROUP, PROFILES_PREFIX, json);
+		configManager.setConfiguration(GearSwitchAlertConfig.GROUP, CUSTOM_ID, customId);
+
+		return newID;
+	}
+
+	public void deleteProfile(String profileUUID) {
+		if(profileUUID.equals("0"))
+			return;
+
+		String loadedProfile = loadSelectedProfile();
+		if(loadedProfile.equals(profileUUID))
+			setEnabledProfile("0");
+
+		Map<String, String> customProfiles = loadCustomProfiles();
+		customProfiles.remove(profileUUID);
+		if (customProfiles.isEmpty()) {
+			configManager.unsetConfiguration(GearSwitchAlertConfig.GROUP, PROFILES_PREFIX);
+			return;
+		}
+
+		String json = gson.toJson(customProfiles);
+		configManager.setConfiguration(GearSwitchAlertConfig.GROUP, PROFILES_PREFIX, json);
+	}
+
+	public void setEnabledProfile(String profileUUID) {
+		configManager.setConfiguration(GearSwitchAlertConfig.GROUP, SELECTED_PROFILE_PREFIX, profileUUID);
+	}
+
+	private void loadSprites()
+	{
+		for (Prayer p : new Prayer[]{Prayer.PROTECT_FROM_MELEE, Prayer.PROTECT_FROM_MISSILES, Prayer.PROTECT_FROM_MAGIC})
+		{
+			BufferedImage img = spriteManager.getSprite(p.getSpriteID(), 0);
+			if (img != null)
+			{
+				BufferedImage norm = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
+				Graphics g = norm.getGraphics();
+				g.drawImage(img, norm.getWidth() / 2 - img.getWidth() / 2, norm.getHeight() / 2 - img.getHeight() / 2, null);
+				prayerSprites.put(p, norm);
+			}
+		}
+
+		if(panel != null)
+			SwingUtilities.invokeLater(panel::loadProfiles);
+	}
+
+	BufferedImage getSprite(Prayer p)
+	{
+		return prayerSprites.get(p);
+	}
+
+	public void duplicateProfile(String profileUUID, String name) {
+		clientThread.invokeLater(() -> {
+			String newProfileID = addProfile(name);
+			setEnabledProfile(newProfileID);
+			for(GearTagSettingsWithItemID tag : getTagsForProfile(profileUUID)) {
+				setTag(tag.itemID, tag.origTag, newProfileID);
+			}
+
+			loadProfiles();
+			SwingUtilities.invokeLater(() -> {
+				panel.loadProfiles();
+				panel.revalidate();
+				panel.repaint();
+			});
+		});
+	}
+
+	public void addTagBySearch(String profileUDID) {
+		if (client.getGameState() != GameState.LOGGED_IN) {
+			JOptionPane.showMessageDialog(panel,
+					"You must be logged in to search.",
+					"Cannot Search for Item",
+					JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		itemSearch
+			.tooltipText("Add item tag")
+			.onItemSelected((itemId) ->
+			{
+				clientThread.invokeLater(() ->
+				{
+					int finalId = itemManager.canonicalize(itemId);
+					ItemStats itemStats = itemManager.getItemStats(finalId, false);
+					if(config.allowTaggingUnequipables() || (itemStats != null && itemStats.isEquipable())) {
+						setTag(finalId, new GearTagSettings(), profileUDID);
+					} else {
+						SwingUtilities.invokeLater(() ->
+						JOptionPane.showMessageDialog(panel,
+								"Only equipable items can be tagged!",
+								"Cannot Add Item Tag",
+								JOptionPane.ERROR_MESSAGE));
+					}
+				});
+			})
+			.build();
+	}
+
+	public void removeTag(Integer itemID, String profileUUID) {
+		unsetTag(itemID, profileUUID);
+		loadProfiles();
+		overlay.invalidateCache();
+		panel.loadProfiles();
+		panel.revalidate();
+		panel.repaint();
+	}
+
+	public void removeAllTags(String profileUUID) {
+		clientThread.invokeLater(() -> {
+			for(GearTagSettingsWithItemID tag : getTagsForProfile(profileUUID)) {
+				unsetTag(tag.itemID, profileUUID);
+			}
+			loadProfiles();
+			overlay.invalidateCache();
+
+			SwingUtilities.invokeLater(() -> {
+				panel.loadProfiles();
+				panel.revalidate();
+				panel.repaint();
+			});
+		});
 	}
 }

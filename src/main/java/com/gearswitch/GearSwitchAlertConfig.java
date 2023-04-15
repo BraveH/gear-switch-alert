@@ -1,5 +1,7 @@
 package com.gearswitch;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import net.runelite.client.config.*;
 
 import java.awt.*;
@@ -51,7 +53,7 @@ public interface GearSwitchAlertConfig extends Config
 		return Color.BLUE;
 	}
 	@ConfigSection(
-			name = "Tag display mode",
+			name = "Tag Display Mode",
 			description = "How tags are displayed in the inventory",
 			position = 3
 	)
@@ -118,5 +120,62 @@ public interface GearSwitchAlertConfig extends Config
 	default int fillOpacity()
 	{
 		return 50;
+	}
+
+
+	@ConfigSection(
+			name = "Panel Settings",
+			description = "Settings specific to the side panel tool.",
+			position = 8
+	)
+	String panelSection = "panelSection";
+
+	@ConfigItem(
+			keyName = "hidePlugin",
+			name = "Hide on toolbar",
+			description = "When checked, the plugin will not appear in the tool bar",
+			position = 8,
+			section = panelSection
+	)
+	default boolean hidePlugin() {
+		return false;
+	}
+
+	@Getter
+	@RequiredArgsConstructor
+	enum SortMethod
+	{
+		NONE("None"),
+		EMPTY_FIRST("Place non-tagged items first"),
+		ALL_FIRST("Place items tagged with more styles first");
+
+		final String name;
+	}
+	@ConfigItem(
+			position = 9,
+			keyName = "tagSortMethod",
+			name = "Tags Sort Method",
+			description = "Sorting method used on tagged item boxes in the panel. <br/>None = no sorting<br/> Empty First = Place non-tagged items first<br/> All First = Place items tagged with more styles first",
+			section = panelSection
+	)
+	default SortMethod sortItems() { return SortMethod.ALL_FIRST; }
+
+
+	@ConfigSection(
+			name = "General Settings",
+			description = "Settings plugin settings.",
+			position = 10
+	)
+	String generalSection = "generalSection";
+
+	@ConfigItem(
+			keyName = "allowTaggingUnequipables",
+			name = "Allow tagging unequipable items",
+			description = "Should unequipable items be allowed to be tagged as melee/range/magic gear?",
+			position = 10,
+			section = generalSection
+	)
+	default boolean allowTaggingUnequipables() {
+		return false;
 	}
 }
