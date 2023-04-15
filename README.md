@@ -36,4 +36,4 @@ You need to be logged in to be able to use the search menu!
 
 - [ ] Enable automatic gear item tagging so that gear items are automatically identified by their respective types (this can still be altered manually if a range gear for example is purposefully being used alongside melee gear for example in some future PvM content etc)
 
-- [ ] Add profiles so that you can set specific gear item type based on specific PvM content
+- [x] Add profiles so that you can set specific gear item type based on specific PvM content
