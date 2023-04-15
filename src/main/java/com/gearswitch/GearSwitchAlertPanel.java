@@ -45,12 +45,14 @@ public class GearSwitchAlertPanel extends PluginPanel {
         this.clientThread = clientThread;
         this.config = config;
 
+        add(Box.createRigidArea(new Dimension(PluginPanel.PANEL_WIDTH - 10, 10)));
+
         Font font = FontManager.getRunescapeFont();
         Map<TextAttribute, Integer> attributes = new HashMap<>();
         attributes.put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);
 
         JLabel titleLabel = new JLabel("Dynamic Inventory Tags");
-        titleLabel.setFont(font.deriveFont(Font.BOLD, 48.0f).deriveFont(attributes));
+        titleLabel.setFont(font.deriveFont(Font.BOLD, 20).deriveFont(attributes));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(titleLabel);
 

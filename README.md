@@ -1,12 +1,25 @@
-# Dynamic Inventory Tags
+# Dynamic Inventory Tags (v1.1.0)
 A plugin to tag gear items that are missing from your current switch. Depending on the weapon type equipped, melee/range/magic gear gets highlighted accordingly if they aren't equipped.
 To set if an item is meant to be defined as Melee gear, Range gear, or Magic gear... shift + right click the item and set it manually.
+
+### What's New:
+- [Added Panel](#panel)
+- [Added the ability to add items by searching for them. No need to have them equipped or in inventory anymore!](#searching-mechanism)
+- Added check to ensure that items being added are equippable items (can be disabled in config if you wish to set tags for unequippable item for some reason)
 
 ## Example
 
 ![setting_tag_example.gif](setting_tag_example.gif)
 
 ![tag_example.gif](tag_example.gif)
+
+## Panel
+![panel_features.gif](panel_features.gif)
+
+## Searching Mechanism
+You need to be logged in to be able to use the search menu!
+
+![search_mechanism.gif](search_mechanism.gif)
 
 ## Screenshots
 ![melee_gear_missing.png](melee_gear_missing.png)
