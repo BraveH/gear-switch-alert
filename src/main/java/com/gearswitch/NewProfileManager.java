@@ -1,6 +1,5 @@
 package com.gearswitch;
 
-import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;

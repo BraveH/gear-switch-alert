@@ -3,7 +3,6 @@ package com.gearswitch;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.ItemManager;
@@ -178,8 +177,6 @@ class ProfilePanel extends JPanel {
         final JMenuItem duplicate = new JMenuItem("Duplicate Profile");
         duplicate.addActionListener(e ->
         {
-            // TODO
-            // ALSO TODO, why do profiles get created but disappear?
             final String result = JOptionPane.showInputDialog(rowContainer,
                     "What's the name of the new profile?",
                     "Duplicate Profile?", JOptionPane.INFORMATION_MESSAGE);

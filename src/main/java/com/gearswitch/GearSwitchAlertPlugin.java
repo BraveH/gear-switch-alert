@@ -105,7 +105,7 @@ public class GearSwitchAlertPlugin extends Plugin
 		loadProfiles();
 		overlayManager.add(overlay);
 
-		panel = new GearSwitchAlertPanel(clientThread, this, gson, itemManager, config);
+		panel = new GearSwitchAlertPanel(clientThread, this, itemManager, config);
 		final BufferedImage icon = ImageUtil.loadImageResource(GearSwitchAlertPlugin.class, "dynamic_tags_icon.png");
 
 		navButton = NavigationButton.builder()
@@ -293,10 +293,6 @@ public class GearSwitchAlertPlugin extends Plugin
 		ProfilePanel tile = panel.getEnabledProfileTile();
 		if(tile != null)
 			clientThread.invokeLater(tile::rebuild);
-	}
-
-	void unsetTag(int itemId) {
-		unsetTag(itemId, loadSelectedProfile());
 	}
 
 	void unsetTag(int itemId, String profileUUID) {

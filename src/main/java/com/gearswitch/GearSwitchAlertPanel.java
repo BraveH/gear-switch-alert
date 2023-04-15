@@ -1,13 +1,14 @@
 package com.gearswitch;
 
 import com.google.common.base.Strings;
-import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.ItemManager;
-import net.runelite.client.ui.*;
-import net.runelite.client.ui.components.*;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.FontManager;
+import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.ui.components.IconTextField;
 
 import javax.swing.*;
 import java.awt.*;
@@ -26,7 +27,6 @@ import static com.gearswitch.ProfilePanel.*;
 public class GearSwitchAlertPanel extends PluginPanel {
 
     private final GearSwitchAlertPlugin plugin;
-    private final Gson gson;
     private final ItemManager itemManager;
 
     private final IconTextField searchBar;
@@ -38,10 +38,9 @@ public class GearSwitchAlertPanel extends PluginPanel {
     @Getter
     private ProfilePanel enabledProfileTile = null;
 
-    GearSwitchAlertPanel(ClientThread clientThread, GearSwitchAlertPlugin plugin, Gson gson, ItemManager itemManager, GearSwitchAlertConfig config) {
+    GearSwitchAlertPanel(ClientThread clientThread, GearSwitchAlertPlugin plugin, ItemManager itemManager, GearSwitchAlertConfig config) {
         super();
         this.plugin = plugin;
-        this.gson = gson;
         this.itemManager = itemManager;
         this.clientThread = clientThread;
         this.config = config;
