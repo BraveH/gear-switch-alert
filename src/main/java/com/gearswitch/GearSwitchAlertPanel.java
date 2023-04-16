@@ -191,4 +191,10 @@ public class GearSwitchAlertPanel extends PluginPanel {
             }
         });
     }
+
+    public void reload() {
+        loadProfiles();
+        revalidate();
+        repaint();
+    }
 }

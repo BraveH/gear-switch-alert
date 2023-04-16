@@ -189,7 +189,6 @@ class ProfilePanel extends JPanel {
             }
         });
 
-
         final JMenuItem reset = new JMenuItem("Reset Profile");
         reset.addActionListener(e ->
         {
@@ -203,11 +202,15 @@ class ProfilePanel extends JPanel {
             }
         });
 
+        final JMenuItem export = new JMenuItem("Export Profile");
+        export.addActionListener(e -> plugin.exportProfileToClipboard(profileUUID, rowContainer));
+
         // Create popup menu
         final JPopupMenu popupMenu = new JPopupMenu();
         popupMenu.setBorder(new EmptyBorder(5, 5, 5, 5));
         popupMenu.add(duplicate);
         popupMenu.add(reset);
+        popupMenu.add(export);
         rowContainer.setComponentPopupMenu(popupMenu);
 
         if(enabled) {

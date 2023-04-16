@@ -7,6 +7,9 @@ import net.runelite.client.ui.components.FlatTextField;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.IOException;
 
 @Slf4j
 public class NewProfileManager extends PluginPanel {
@@ -42,5 +45,26 @@ public class NewProfileManager extends PluginPanel {
             panel.loadProfiles();
         });
         add(addProfileButton);
+
+        JButton importProfileButton = new JButton();
+        importProfileButton.setText("Import Profile From Clipboard");
+        importProfileButton.setHorizontalAlignment(JLabel.CENTER);
+        importProfileButton.setFocusable(false);
+        importProfileButton.setPreferredSize((new Dimension(PluginPanel.PANEL_WIDTH - 10, 30)));
+        importProfileButton.addActionListener(e ->
+        {
+            final String clipboardText;
+            try
+            {
+                clipboardText = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor).toString();
+            }
+            catch (IOException | UnsupportedFlavorException ignore)
+            {
+                JOptionPane.showMessageDialog(importProfileButton, "Nothing in clipboard!", null, JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            plugin.importProfileFromClipboard(clipboardText, importProfileButton);
+        });
+        add(importProfileButton);
     }
 }

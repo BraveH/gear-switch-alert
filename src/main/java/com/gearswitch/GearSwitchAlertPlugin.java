@@ -2,6 +2,7 @@ package com.gearswitch;
 
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Provides;
 import lombok.Getter;
@@ -33,6 +34,7 @@ import net.runelite.http.api.item.ItemStats;
 import javax.inject.Inject;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -251,8 +253,8 @@ public class GearSwitchAlertPlugin extends Plugin
 					if(tag != null && !tag.isEmpty()) {
 						GearTagSettings gearTag = gson.fromJson(tag, GearTagSettings.class);
 //						if(gearTag.isMeleeGear || gearTag.isRangeGear || gearTag.isMagicGear) {
-							GearTagSettingsWithItemID tagWithID = new GearTagSettingsWithItemID(gearTag, key, itemManager);
-							result.add(tagWithID);
+						GearTagSettingsWithItemID tagWithID = new GearTagSettingsWithItemID(gearTag, key, itemManager);
+						result.add(tagWithID);
 //						}
 					}
 				}
@@ -264,8 +266,8 @@ public class GearSwitchAlertPlugin extends Plugin
 				if(tag != null && !tag.isEmpty()) {
 					GearTagSettings gearTag = gson.fromJson(tag, GearTagSettings.class);
 //					if(gearTag.isMeleeGear || gearTag.isRangeGear || gearTag.isMagicGear) {
-						GearTagSettingsWithItemID tagWithID = new GearTagSettingsWithItemID(gearTag, key, itemManager);
-						result.add(tagWithID);
+					GearTagSettingsWithItemID tagWithID = new GearTagSettingsWithItemID(gearTag, key, itemManager);
+					result.add(tagWithID);
 //					}
 				}
 			}
@@ -484,13 +486,10 @@ public class GearSwitchAlertPlugin extends Plugin
 		configManager.setConfiguration(GearSwitchAlertConfig.GROUP, SELECTED_PROFILE_PREFIX, profileUUID);
 	}
 
-	private void loadSprites()
-	{
-		for (Prayer p : new Prayer[]{Prayer.PROTECT_FROM_MELEE, Prayer.PROTECT_FROM_MISSILES, Prayer.PROTECT_FROM_MAGIC})
-		{
+	private void loadSprites() {
+		for (Prayer p : new Prayer[]{Prayer.PROTECT_FROM_MELEE, Prayer.PROTECT_FROM_MISSILES, Prayer.PROTECT_FROM_MAGIC}) {
 			BufferedImage img = spriteManager.getSprite(p.getSpriteID(), 0);
-			if (img != null)
-			{
+			if (img != null) {
 				BufferedImage norm = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
 				Graphics g = norm.getGraphics();
 				g.drawImage(img, norm.getWidth() / 2 - img.getWidth() / 2, norm.getHeight() / 2 - img.getHeight() / 2, null);
@@ -502,8 +501,7 @@ public class GearSwitchAlertPlugin extends Plugin
 			SwingUtilities.invokeLater(panel::loadProfiles);
 	}
 
-	BufferedImage getSprite(Prayer p)
-	{
+	BufferedImage getSprite(Prayer p) {
 		return prayerSprites.get(p);
 	}
 
@@ -517,9 +515,7 @@ public class GearSwitchAlertPlugin extends Plugin
 
 			loadProfiles();
 			SwingUtilities.invokeLater(() -> {
-				panel.loadProfiles();
-				panel.revalidate();
-				panel.repaint();
+				panel.reload();
 			});
 		});
 	}
@@ -534,32 +530,30 @@ public class GearSwitchAlertPlugin extends Plugin
 		}
 
 		itemSearch
-			.tooltipText("Add item tag")
-			.onItemSelected((itemId) ->
-				clientThread.invokeLater(() ->
-				{
-					int finalId = itemManager.canonicalize(itemId);
-					ItemStats itemStats = itemManager.getItemStats(finalId, false);
-					if(config.allowTaggingUnequipables() || (itemStats != null && itemStats.isEquipable())) {
-						setTag(finalId, new GearTagSettings(), profileUDID);
-					} else {
-						SwingUtilities.invokeLater(() ->
-						JOptionPane.showMessageDialog(panel,
-								"Only equipable items can be tagged!",
-								"Cannot Add Item Tag",
-								JOptionPane.ERROR_MESSAGE));
-					}
-				}))
-			.build();
+				.tooltipText("Add item tag")
+				.onItemSelected((itemId) ->
+						clientThread.invokeLater(() ->
+						{
+							int finalId = itemManager.canonicalize(itemId);
+							ItemStats itemStats = itemManager.getItemStats(finalId, false);
+							if(config.allowTaggingUnequipables() || (itemStats != null && itemStats.isEquipable())) {
+								setTag(finalId, new GearTagSettings(), profileUDID);
+							} else {
+								SwingUtilities.invokeLater(() ->
+										JOptionPane.showMessageDialog(panel,
+												"Only equipable items can be tagged!",
+												"Cannot Add Item Tag",
+												JOptionPane.ERROR_MESSAGE));
+							}
+						}))
+				.build();
 	}
 
 	public void removeTag(Integer itemID, String profileUUID) {
 		unsetTag(itemID, profileUUID);
 		loadProfiles();
 		overlay.invalidateCache();
-		panel.loadProfiles();
-		panel.revalidate();
-		panel.repaint();
+		panel.reload();
 	}
 
 	public void removeAllTags(String profileUUID) {
@@ -571,10 +565,55 @@ public class GearSwitchAlertPlugin extends Plugin
 			overlay.invalidateCache();
 
 			SwingUtilities.invokeLater(() -> {
-				panel.loadProfiles();
-				panel.revalidate();
-				panel.repaint();
+				panel.reload();
 			});
 		});
+	}
+
+	public void importProfileFromClipboard(String clipboardText, Component parent) {
+		clientThread.invokeLater(() -> {
+			try {
+				ProfileSerialization profileSerialization = gson.fromJson(clipboardText, new TypeToken<ProfileSerialization>() {
+				}.getType());
+				String profileID = addProfile(profileSerialization.name);
+				for (Map.Entry<Integer, GearTagSettings> set : profileSerialization.tags.entrySet()) {
+					Integer itemId = set.getKey();
+					GearTagSettings tag = set.getValue();
+
+					setTag(itemId, tag, profileID);
+				}
+				loadProfiles();
+				overlay.invalidateCache();
+				SwingUtilities.invokeLater(() -> {
+					panel.reload();
+				});
+			} catch (JsonSyntaxException e) {
+				SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "Nothing in clipboard!", null, JOptionPane.ERROR_MESSAGE));
+			}
+		});
+	}
+
+	public void exportProfileToClipboard(String profileID, Component parent) {
+		if(profiles.containsKey(profileID)) {
+			clientThread.invokeLater(() -> {
+				ProfileSerialization profileSerialization = new ProfileSerialization();
+				profileSerialization.name = profiles.get(profileID);
+
+				ArrayList<GearTagSettingsWithItemID> tags = getTagsForProfile(profileID);
+				for (GearTagSettingsWithItemID tag : tags) {
+					profileSerialization.tags.put(tag.itemID, tag.origTag);
+				}
+
+				String json = gson.toJson(profileSerialization);
+
+				try {
+					Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(json), null);
+				} catch (Exception e) {
+					SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "Failed to export to clipboard!", null, JOptionPane.ERROR_MESSAGE));
+				}
+			});
+		} else {
+			SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "Profile Not Found!", null, JOptionPane.ERROR_MESSAGE));
+		}
 	}
 }
