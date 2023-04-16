@@ -6,6 +6,7 @@ To set if an item is meant to be defined as Melee gear, Range gear, or Magic gea
 - [Added Panel](#panel)
 - [Added the ability to add items by searching for them. No need to have them equipped or in inventory anymore!](#searching-mechanism)
 - Added check to ensure that items being added are equippable items (can be disabled in config if you wish to set tags for unequippable item for some reason)
+- Ability to import/export profiles! (Right-click any profile to export and use the "Import profile from clipboard" button at the bottom of the panel to import)
 
 ## Example
 
