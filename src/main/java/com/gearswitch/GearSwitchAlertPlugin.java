@@ -121,6 +121,7 @@ public class GearSwitchAlertPlugin extends Plugin
 	@Override
 	protected void shutDown() throws Exception {
 		overlayManager.remove(overlay);
+		clientToolbar.removeNavigation(navButton);
 	}
 
 	@Subscribe
