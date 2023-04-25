@@ -1,4 +1,8 @@
 # Dynamic Inventory Tags (v1.1.0)
+
+[![Active Installs](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/installs/plugin/dynamic-inventory-tags)](https://runelite.net/plugin-hub/show/dynamic-inventory-tags)
+[![Plugin Rank](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/rank/plugin/dynamic-inventory-tags)](https://runelite.net/plugin-hub/show/dynamic-inventory-tags)
+
 A plugin to tag gear items that are missing from your current switch. Depending on the weapon type equipped, melee/range/magic gear gets highlighted accordingly if they aren't equipped.
 To set if an item is meant to be defined as Melee gear, Range gear, or Magic gear... shift + right click the item and set it manually.
 
