@@ -8,6 +8,7 @@ import com.google.inject.Provides;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.VarbitChanged;
@@ -209,6 +210,8 @@ public class GearSwitchAlertPlugin extends Plugin
 				isCurrentTwoHanded = getItemStats(weaponId).getEquipment().isTwoHanded();
 			}
 		}
+
+		overlay.resetDelayTimer();
 	}
 
 	GearTagSettings getTag(int itemId) {
@@ -615,6 +618,13 @@ public class GearSwitchAlertPlugin extends Plugin
 			});
 		} else {
 			SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "Profile Not Found!", null, JOptionPane.ERROR_MESSAGE));
+		}
+	}
+
+	@Subscribe
+	void onGameStateChanged(GameStateChanged event) {
+		if(event.getGameState().equals(GameState.LOGGED_IN)) {
+			overlay.resetDelayTimer();
 		}
 	}
 }

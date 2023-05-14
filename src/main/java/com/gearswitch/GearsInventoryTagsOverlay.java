@@ -45,6 +45,7 @@ class GearsInventoryTagsOverlay extends WidgetItemOverlay
     private final GearSwitchAlertConfig config;
     private final Cache<Long, Image> fillCache;
     private final Cache<Integer, GearTagSettings> tagCache;
+    private long delayTimerStart;
 
     @Inject
     private GearsInventoryTagsOverlay(ItemManager itemManager, GearSwitchAlertPlugin plugin, GearSwitchAlertConfig config)
@@ -76,6 +77,12 @@ class GearsInventoryTagsOverlay extends WidgetItemOverlay
         final GearTagSettings gearTagSettings = getTag(itemId);
         if (gearTagSettings == null)
         {
+            return;
+        }
+
+        long currentTime = System.currentTimeMillis();
+        long delayRequired = config.millisecondsBeforeTagging();
+        if(delayTimerStart != 0 && delayRequired > 0 && (currentTime - delayTimerStart) < delayRequired) {
             return;
         }
 
@@ -167,5 +174,9 @@ class GearsInventoryTagsOverlay extends WidgetItemOverlay
     {
         fillCache.invalidateAll();
         tagCache.invalidateAll();
+    }
+
+    void resetDelayTimer() {
+        delayTimerStart = System.currentTimeMillis();
     }
 }

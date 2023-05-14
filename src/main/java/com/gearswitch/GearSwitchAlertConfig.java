@@ -178,4 +178,15 @@ public interface GearSwitchAlertConfig extends Config
 	default boolean allowTaggingUnequipables() {
 		return false;
 	}
+
+	@ConfigItem(
+			keyName = "secondsBeforeTagging",
+			name = "Tagging Delay (ms)",
+			description = "Delay (in milliseconds) before tagging if the gear is still not switched?",
+			position = 11,
+			section = generalSection
+	)
+	default int millisecondsBeforeTagging() {
+		return 0;
+	}
 }
