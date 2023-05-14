@@ -1,4 +1,4 @@
-# Dynamic Inventory Tags (v1.1.0)
+# Dynamic Inventory Tags (v1.1.1)
 
 [![Active Installs](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/installs/plugin/dynamic-inventory-tags)](https://runelite.net/plugin-hub/show/dynamic-inventory-tags)
 [![Plugin Rank](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/rank/plugin/dynamic-inventory-tags)](https://runelite.net/plugin-hub/show/dynamic-inventory-tags)
@@ -7,6 +7,7 @@ A plugin to tag gear items that are missing from your current switch. Depending 
 To set if an item is meant to be defined as Melee gear, Range gear, or Magic gear... shift + right click the item and set it manually.
 
 ### What's New:
+- Add tagging delay option
 - [Added Panel](#panel)
 - [Added the ability to add items by searching for them. No need to have them equipped or in inventory anymore!](#searching-mechanism)
 - Added check to ensure that items being added are equippable items (can be disabled in config if you wish to set tags for unequippable item for some reason)
