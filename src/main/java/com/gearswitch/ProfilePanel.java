@@ -53,6 +53,7 @@ class ProfilePanel extends JPanel {
     private final GearSwitchAlertPlugin plugin;
     private final GearSwitchAlertPanel panel;
     private final ItemManager itemManager;
+    private final ClientThread clientThread;
     private JLabel deleteCustomProfile;
 
     JLabel collapseBtn;
@@ -84,6 +85,7 @@ class ProfilePanel extends JPanel {
 
     ProfilePanel(ClientThread clientThread, GearSwitchAlertPlugin plugin, ItemManager itemManager, GearSwitchAlertPanel panel, String profileUUID, String profileName) {
         super();
+        this.clientThread = clientThread;
 
         fillCache = CacheBuilder.newBuilder()
                 .concurrencyLevel(1)
@@ -258,7 +260,7 @@ class ProfilePanel extends JPanel {
             imageLabel2.setVerticalAlignment(SwingConstants.BOTTOM);
             imageLabel2.setHorizontalAlignment(SwingConstants.CENTER);
 
-            AsyncBufferedImage prayerImg = new AsyncBufferedImage(width, PRAYER_SIZE, TYPE_INT_ARGB);
+            AsyncBufferedImage prayerImg = new AsyncBufferedImage(clientThread, width, PRAYER_SIZE, TYPE_INT_ARGB);
             prayerImg = applyPrayerToImage(prayerImg, tag.isMeleeGear, tag.isRangeGear, tag.isMagicGear);
             prayerImg.addTo(imageLabel2);
 
