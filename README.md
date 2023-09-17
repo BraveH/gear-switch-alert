@@ -1,4 +1,4 @@
-# Dynamic Inventory Tags (v1.1.1)
+# Dynamic Inventory Tags (v1.1.2)
 
 [![Active Installs](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/installs/plugin/dynamic-inventory-tags)](https://runelite.net/plugin-hub/show/dynamic-inventory-tags)
 [![Plugin Rank](http://img.shields.io/endpoint?url=https://i.pluginhub.info/shields/rank/plugin/dynamic-inventory-tags)](https://runelite.net/plugin-hub/show/dynamic-inventory-tags)
