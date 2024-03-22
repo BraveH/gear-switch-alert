@@ -28,7 +28,6 @@ package com.gearswitch;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import net.runelite.api.widgets.InterfaceID;
-import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetItem;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.WidgetItemOverlay;
