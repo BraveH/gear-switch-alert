@@ -116,13 +116,19 @@ public class GearSwitchAlertPlugin extends Plugin
 				.icon(icon)
 				.panel(panel)
 				.build();
-		clientToolbar.addNavigation(navButton);
+
+		if (!config.hidePlugin()) {
+			clientToolbar.addNavigation(navButton);
+		}
 	}
 
 	@Override
 	protected void shutDown() throws Exception {
 		overlayManager.remove(overlay);
-		clientToolbar.removeNavigation(navButton);
+
+		if (!config.hidePlugin()) {
+			clientToolbar.removeNavigation(navButton);
+		}
 	}
 
 	@Subscribe
@@ -163,13 +169,45 @@ public class GearSwitchAlertPlugin extends Plugin
 		}
 	}
 
+	private AttackStyle[] getWeaponTypeStyles(int weaponType)
+	{
+		// from script4525
+		int weaponStyleEnum = client.getEnum(EnumID.WEAPON_STYLES).getIntValue(weaponType);
+		int[] weaponStyleStructs = client.getEnum(weaponStyleEnum).getIntVals();
+
+		AttackStyle[] styles = new AttackStyle[weaponStyleStructs.length];
+		int i = 0;
+		for (int style : weaponStyleStructs)
+		{
+			StructComposition attackStyleStruct = client.getStructComposition(style);
+			String attackStyleName = attackStyleStruct.getStringValue(ParamID.ATTACK_STYLE_NAME);
+
+			AttackStyle attackStyle = AttackStyle.valueOf(attackStyleName.toUpperCase());
+			if (attackStyle == OTHER)
+			{
+				// "Other" is used for no style
+				++i;
+				continue;
+			}
+
+			// "Defensive" is used for Defensive and also Defensive casting
+			if (i == 5 && attackStyle == DEFENSIVE)
+			{
+				attackStyle = DEFENSIVE_CASTING;
+			}
+
+			styles[i++] = attackStyle;
+		}
+		return styles;
+	}
+
 	private void UpdateEquippedWeaponInfo(boolean forceInvalidate) {
 		final int attackStyleIndex = client.getVarpValue(VarPlayer.ATTACK_STYLE);
 		final int currentEquippedWeaponTypeVarbit = client.getVarbitValue(Varbits.EQUIPPED_WEAPON_TYPE);
 		final int castingMode = client.getVarbitValue(Varbits.DEFENSIVE_CASTING_MODE);
 
 		AttackStyle newAttackStyle = OTHER;
-		AttackStyle[] attackStyles = WeaponType.getWeaponType(currentEquippedWeaponTypeVarbit).getAttackStyles();
+		AttackStyle[] attackStyles = getWeaponTypeStyles(currentEquippedWeaponTypeVarbit);
 		if (attackStyleIndex < attackStyles.length) {
 			newAttackStyle = attackStyles[attackStyleIndex];
 			if (newAttackStyle == null) {
