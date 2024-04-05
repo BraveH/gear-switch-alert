@@ -214,6 +214,8 @@ public class GearSwitchAlertPlugin extends Plugin
 				newAttackStyle = OTHER;
 			} else if ((newAttackStyle == CASTING) && (castingMode == 1)) {
 				newAttackStyle = DEFENSIVE_CASTING;
+			} else if ((newAttackStyle == DEFENSIVE) && (attackStyles[0] == CASTING)) {
+				newAttackStyle = LONGRANGE_CASTING;
 			}
 		}
 
@@ -231,6 +233,7 @@ public class GearSwitchAlertPlugin extends Plugin
 				break;
 			case CASTING:
 			case DEFENSIVE_CASTING:
+			case LONGRANGE_CASTING:
 				newAttackType = AttackType.MAGIC;
 				break;
 		}
