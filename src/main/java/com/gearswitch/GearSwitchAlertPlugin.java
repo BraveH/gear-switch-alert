@@ -214,7 +214,7 @@ public class GearSwitchAlertPlugin extends Plugin
 			newAttackStyle = attackStyles[attackStyleIndex];
 			if (newAttackStyle == null) {
 				newAttackStyle = OTHER;
-			} else if ((newAttackStyle == CASTING) && (castingMode == 1)) {
+			} else if ((newAttackStyle == DEFENSIVE) && (attackStyles[0] == CASTING)) {
 				newAttackStyle = DEFENSIVE_CASTING;
 			}
 		}
