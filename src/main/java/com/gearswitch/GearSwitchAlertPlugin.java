@@ -7,7 +7,9 @@ import com.google.gson.reflect.TypeToken;
 import com.google.inject.Provides;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
 import net.runelite.api.*;
+import net.runelite.api.Menu;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuOpened;
@@ -212,7 +214,7 @@ public class GearSwitchAlertPlugin extends Plugin
 			newAttackStyle = attackStyles[attackStyleIndex];
 			if (newAttackStyle == null) {
 				newAttackStyle = OTHER;
-			} else if ((newAttackStyle == CASTING) && (castingMode == 1)) {
+			} else if ((newAttackStyle == DEFENSIVE) && (attackStyles[0] == CASTING)) {
 				newAttackStyle = DEFENSIVE_CASTING;
 			} else if ((newAttackStyle == DEFENSIVE) && (attackStyles[0] == CASTING)) {
 				newAttackStyle = LONGRANGE_CASTING;
@@ -380,11 +382,9 @@ public class GearSwitchAlertPlugin extends Plugin
 					}
 
 					final GearTagSettings gearTagSettings = getTag(itemId);
-
-					final MenuEntry parent = client.createMenuEntry(idx)
+					final Menu parent = client.getMenu().createMenuEntry(idx)
 							.setOption("Gear Switch Alert Tagging")
-							.setTarget(entry.getTarget())
-							.setType(MenuAction.RUNELITE_SUBMENU);
+							.createSubMenu();
 
 					boolean isMeleeEnabled, isRangeEnabled, isMagicEnabled;
 					if (gearTagSettings != null) {
@@ -396,37 +396,26 @@ public class GearSwitchAlertPlugin extends Plugin
 						isMeleeEnabled = false;
 						isRangeEnabled = false;
 					}
+					int finalItemId = itemId;
 
-					for (int i = 0; i < 3; i++) {
-						// 0 = melee,
-						// 1 = range,
-						// 2 = magic
+					parent.createMenuEntry(0)
+							.setOption(ColorUtil.prependColorTag(isMeleeEnabled ? "Unset Melee Gear" : "Set Melee Gear", config.defaultColourMelee()))
+							.setType(MenuAction.RUNELITE)
+							.onClick(e ->
+									toggleGearTag(gearTagSettings, finalItemId, true, false, false));
 
+					parent.createMenuEntry(0)
+							.setOption(ColorUtil.prependColorTag(isRangeEnabled ? "Unset Range Gear" : "Set Range Gear", config.defaultColourRanged()))
+							.setType(MenuAction.RUNELITE)
+							.onClick(e ->
+									toggleGearTag(gearTagSettings, finalItemId, false, true, false));
 
-						int finalItemId = itemId;
-						if (i == 0) {
-							client.createMenuEntry(idx)
-									.setOption(ColorUtil.prependColorTag(isMeleeEnabled ? "Unset Melee Gear" : "Set Melee Gear", config.defaultColourMelee()))
-									.setType(MenuAction.RUNELITE)
-									.setParent(parent)
-									.onClick(e ->
-											toggleGearTag(gearTagSettings, finalItemId, true, false, false));
-						} else if (i == 1) {
-							client.createMenuEntry(idx)
-									.setOption(ColorUtil.prependColorTag(isRangeEnabled ? "Unset Range Gear" : "Set Range Gear", config.defaultColourRanged()))
-									.setType(MenuAction.RUNELITE)
-									.setParent(parent)
-									.onClick(e ->
-											toggleGearTag(gearTagSettings, finalItemId, false, true, false));
-						} else {
-							client.createMenuEntry(idx)
-									.setOption(ColorUtil.prependColorTag(isMagicEnabled ? "Unset Magic Gear" : "Set Magic Gear", config.defaultColourMagic()))
-									.setType(MenuAction.RUNELITE)
-									.setParent(parent)
-									.onClick(e ->
-											toggleGearTag(gearTagSettings, finalItemId, false, false, true));
-						}
-					}
+					parent.createMenuEntry(0)
+							.setOption(ColorUtil.prependColorTag(isMagicEnabled ? "Unset Magic Gear" : "Set Magic Gear", config.defaultColourMagic()))
+							.setType(MenuAction.RUNELITE)
+							.onClick(e ->
+									toggleGearTag(gearTagSettings, finalItemId, false, false, true));
+
 				}
 			}
 		}
