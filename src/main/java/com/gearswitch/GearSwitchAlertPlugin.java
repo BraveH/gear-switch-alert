@@ -21,7 +21,9 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.game.ItemEquipmentStats;
 import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.ItemStats;
 import net.runelite.client.game.SpriteManager;
 import net.runelite.client.game.chatbox.ChatboxItemSearch;
 import net.runelite.client.plugins.Plugin;
@@ -31,8 +33,6 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
 import net.runelite.client.util.ImageUtil;
-import net.runelite.http.api.item.ItemEquipmentStats;
-import net.runelite.http.api.item.ItemStats;
 
 import javax.inject.Inject;
 import javax.swing.*;
@@ -87,7 +87,8 @@ public class GearSwitchAlertPlugin extends Plugin
 	@Getter
 	private ChatboxItemSearch itemSearch;
 
-	private AttackType attackType;
+	@Getter
+    private AttackType attackType;
 	private boolean isCurrentTwoHanded;
 	private static final String TAG_KEY_PREFIX = "gear_tag_";
 	private static final String PROFILES_PREFIX = "gear_profiles";
@@ -98,11 +99,7 @@ public class GearSwitchAlertPlugin extends Plugin
 	private GearSwitchAlertPanel panel;
 	private NavigationButton navButton;
 
-	public AttackType getAttackType() {
-		return attackType;
-	}
-
-	private final Map<Prayer, BufferedImage> prayerSprites = new HashMap<>();
+    private final Map<Prayer, BufferedImage> prayerSprites = new HashMap<>();
 
 	@Override
 	protected void startUp() throws Exception {
@@ -376,7 +373,7 @@ public class GearSwitchAlertPlugin extends Plugin
 					if (itemId == -1)
 						return;
 
-					ItemStats itemStats = itemManager.getItemStats(itemId, false);
+					ItemStats itemStats = itemManager.getItemStats(itemId);
 					if (!config.allowTaggingUnequipables() && (itemStats == null || !itemStats.isEquipable())) {
 						return;
 					}
@@ -437,7 +434,7 @@ public class GearSwitchAlertPlugin extends Plugin
 	}
 
 	private ItemStats getItemStats(int itemId) {
-		return itemManager.getItemStats(itemId, false);
+		return itemManager.getItemStats(itemId);
 	}
 
 	public String loadSelectedProfile() {
@@ -572,7 +569,7 @@ public class GearSwitchAlertPlugin extends Plugin
 						clientThread.invokeLater(() ->
 						{
 							int finalId = itemManager.canonicalize(itemId);
-							ItemStats itemStats = itemManager.getItemStats(finalId, false);
+							ItemStats itemStats = itemManager.getItemStats(finalId);
 							if(config.allowTaggingUnequipables() || (itemStats != null && itemStats.isEquipable())) {
 								setTag(finalId, new GearTagSettings(), profileUDID);
 							} else {
