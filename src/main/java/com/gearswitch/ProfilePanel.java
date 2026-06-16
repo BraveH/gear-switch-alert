@@ -43,7 +43,7 @@ class ProfilePanel extends JPanel {
     static final ImageIcon EXPANDED_ICON_HOVER;
     static final ImageIcon PLUS_ICON;
     static final ImageIcon PLUS_ICON_HOVER;
-    private static final int PRAYER_SIZE = 12;
+    private static final int PRAYER_SIZE = 9;
 
     final JPanel rowContainer = new JPanel();
     final JPanel rightPanel = new JPanel();
@@ -261,7 +261,7 @@ class ProfilePanel extends JPanel {
             imageLabel2.setHorizontalAlignment(SwingConstants.CENTER);
 
             AsyncBufferedImage prayerImg = new AsyncBufferedImage(clientThread, width, PRAYER_SIZE, TYPE_INT_ARGB);
-            prayerImg = applyPrayerToImage(prayerImg, tag.isMeleeGear, tag.isRangeGear, tag.isMagicGear);
+            prayerImg = applyPrayerToImage(prayerImg, tag.isMeleeGear, tag.isRangeGear, tag.isMagicGear, tag.isSpecialGear);
             prayerImg.addTo(imageLabel2);
 
             imageLabel2.setBounds( 0, height, width, PRAYER_SIZE );
@@ -276,15 +276,19 @@ class ProfilePanel extends JPanel {
 
             final JMenuItem meleeToggle = new JMenuItem(tag.isMeleeGear ? "Unset Melee Gear" : "Set Melee Gear");
             meleeToggle.addActionListener(e ->
-                    plugin.toggleGearTag(item, true, false, false));
+                    plugin.toggleGearTag(item, true, false, false, false));
 
             final JMenuItem rangeToggle = new JMenuItem(tag.isRangeGear ? "Unset Range Gear" : "Set Range Gear");
             rangeToggle.addActionListener(e ->
-                    plugin.toggleGearTag(item, false, true, false));
+                    plugin.toggleGearTag(item, false, true, false, false));
 
             final JMenuItem magicToggle = new JMenuItem(tag.isMagicGear ? "Unset Magic Gear" : "Set Magic Gear");
             magicToggle.addActionListener(e ->
-                    plugin.toggleGearTag(item, false, false, true));
+                    plugin.toggleGearTag(item, false, false, true, false));
+
+            final JMenuItem specialToggle = new JMenuItem(tag.isSpecialGear ? "Unset Special Gear" : "Set Special Gear");
+            specialToggle.addActionListener(e ->
+                    plugin.toggleGearTag(item, false, false, false, true));
 
             final JMenuItem removeTag = new JMenuItem("Remove Tag");
             removeTag.addActionListener(e ->
@@ -293,10 +297,11 @@ class ProfilePanel extends JPanel {
             popupMenu.add(meleeToggle);
             popupMenu.add(rangeToggle);
             popupMenu.add(magicToggle);
+            popupMenu.add(specialToggle);
             popupMenu.add(removeTag);
 
             String enabledTagsText;
-            if(!tag.isMeleeGear && !tag.isRangeGear && !tag.isMagicGear) {
+            if(!tag.isMeleeGear && !tag.isRangeGear && !tag.isMagicGear && !tag.isSpecialGear) {
                 enabledTagsText = "No Tags Set";
             } else {
                 StringBuilder str = new StringBuilder();
@@ -307,6 +312,8 @@ class ProfilePanel extends JPanel {
                     str.append("Ranged").append(delimiter);
                 if(tag.isMagicGear)
                     str.append("Magic").append(delimiter);
+                if(tag.isSpecialGear)
+                    str.append("Special").append(delimiter);
 
                 String list = str.toString();
                 enabledTagsText = list.substring(
@@ -365,16 +372,17 @@ class ProfilePanel extends JPanel {
         tagsContainer.revalidate();
     }
 
-    public AsyncBufferedImage applyPrayerToImage(AsyncBufferedImage img, boolean melee, boolean range, boolean magic) {
+    public AsyncBufferedImage applyPrayerToImage(AsyncBufferedImage img, boolean melee, boolean range, boolean magic, boolean special) {
         Graphics g = img.getGraphics();
-        int imgWidth = img.getWidth();
 
         BufferedImage meleeSprite = plugin.getSprite(Prayer.PROTECT_FROM_MELEE);
         BufferedImage rangeSprite = plugin.getSprite(Prayer.PROTECT_FROM_MISSILES);
         BufferedImage magicSprite = plugin.getSprite(Prayer.PROTECT_FROM_MAGIC);
-        g.drawImage(melee ? getFillImage(panel.config.defaultColourMelee(), meleeSprite, 0) : getFillImage(ColorUtil.colorWithAlpha(Color.GRAY, 30), meleeSprite, 4), 0, 0, PRAYER_SIZE, PRAYER_SIZE, null);
-        g.drawImage(range ? getFillImage(panel.config.defaultColourRanged(), rangeSprite, 1) : getFillImage(ColorUtil.colorWithAlpha(Color.GRAY, 30), rangeSprite, 5), (imgWidth/2) - (PRAYER_SIZE/2), 0, PRAYER_SIZE, PRAYER_SIZE, null);
-        g.drawImage(magic ? getFillImage(panel.config.defaultColourMagic(), magicSprite, 2) : getFillImage(ColorUtil.colorWithAlpha(Color.GRAY, 30), magicSprite, 6), imgWidth - PRAYER_SIZE, 0, PRAYER_SIZE, PRAYER_SIZE, null);
+        Color gray = ColorUtil.colorWithAlpha(Color.GRAY, 30);
+        g.drawImage(melee  ? getFillImage(panel.config.defaultColourMelee(),    meleeSprite, 0) : getFillImage(gray, meleeSprite, 4), PRAYER_SIZE * 0, 0, PRAYER_SIZE, PRAYER_SIZE, null);
+        g.drawImage(range  ? getFillImage(panel.config.defaultColourRanged(),   rangeSprite, 1) : getFillImage(gray, rangeSprite, 5), PRAYER_SIZE * 1, 0, PRAYER_SIZE, PRAYER_SIZE, null);
+        g.drawImage(magic  ? getFillImage(panel.config.defaultColourMagic(),    magicSprite, 2) : getFillImage(gray, magicSprite, 6), PRAYER_SIZE * 2, 0, PRAYER_SIZE, PRAYER_SIZE, null);
+        g.drawImage(special ? getFillImage(panel.config.defaultColourSpecial(), meleeSprite, 3) : getFillImage(gray, meleeSprite, 7), PRAYER_SIZE * 3, 0, PRAYER_SIZE, PRAYER_SIZE, null);
 
         return img;
     }

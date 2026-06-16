@@ -11,7 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.Menu;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
+import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.widgets.InterfaceID;
@@ -89,6 +91,10 @@ public class GearSwitchAlertPlugin extends Plugin
 
 	@Getter
     private AttackType attackType;
+	@Getter
+	private boolean equippedWeaponSpecial;
+	@Getter
+	private boolean pendingTwoHandedEquip;
 	private boolean isCurrentTwoHanded;
 	private static final String TAG_KEY_PREFIX = "gear_tag_";
 	private static final String PROFILES_PREFIX = "gear_profiles";
@@ -151,6 +157,7 @@ public class GearSwitchAlertPlugin extends Plugin
 			return;
 		}
 
+		pendingTwoHandedEquip = false;
 		UpdateEquippedWeaponInfo(true);
 	}
 
@@ -251,7 +258,17 @@ public class GearSwitchAlertPlugin extends Plugin
 			}
 		}
 
+		updateEquippedWeaponSpecial();
 		overlay.resetDelayTimer();
+	}
+
+	void updateEquippedWeaponSpecial() {
+		ItemContainer equipmentContainer = client.getItemContainer(InventoryID.EQUIPMENT);
+		if (equipmentContainer == null) { equippedWeaponSpecial = false; return; }
+		Item weapon = equipmentContainer.getItem(EquipmentInventorySlot.WEAPON.getSlotIdx());
+		if (weapon == null) { equippedWeaponSpecial = false; return; }
+		GearTagSettings tag = getTag(weapon.getId());
+		equippedWeaponSpecial = tag != null && tag.isSpecialGear;
 	}
 
 	GearTagSettings getTag(int itemId) {
@@ -336,6 +353,7 @@ public class GearSwitchAlertPlugin extends Plugin
 		String profilePrefix = profileUUID.equals("0") ? "" : profileUUID + "_";
 		configManager.setConfiguration(GearSwitchAlertConfig.GROUP, TAG_KEY_PREFIX + profilePrefix + itemId, json);
 		overlay.invalidateCache();
+		clientThread.invokeLater(this::updateEquippedWeaponSpecial);
 		ProfilePanel tile = panel.getEnabledProfileTile();
 		if(tile != null)
 			clientThread.invokeLater(tile::rebuild);
@@ -383,15 +401,17 @@ public class GearSwitchAlertPlugin extends Plugin
 							.setOption("Gear Switch Alert Tagging")
 							.createSubMenu();
 
-					boolean isMeleeEnabled, isRangeEnabled, isMagicEnabled;
+					boolean isMeleeEnabled, isRangeEnabled, isMagicEnabled, isSpecialEnabled;
 					if (gearTagSettings != null) {
 						isMeleeEnabled = gearTagSettings.isMeleeGear;
 						isRangeEnabled = gearTagSettings.isRangeGear;
 						isMagicEnabled = gearTagSettings.isMagicGear;
+						isSpecialEnabled = gearTagSettings.isSpecialGear;
 					} else {
 						isMagicEnabled = false;
 						isMeleeEnabled = false;
 						isRangeEnabled = false;
+						isSpecialEnabled = false;
 					}
 					int finalItemId = itemId;
 
@@ -399,30 +419,36 @@ public class GearSwitchAlertPlugin extends Plugin
 							.setOption(ColorUtil.prependColorTag(isMeleeEnabled ? "Unset Melee Gear" : "Set Melee Gear", config.defaultColourMelee()))
 							.setType(MenuAction.RUNELITE)
 							.onClick(e ->
-									toggleGearTag(gearTagSettings, finalItemId, true, false, false));
+									toggleGearTag(gearTagSettings, finalItemId, true, false, false, false));
 
 					parent.createMenuEntry(0)
 							.setOption(ColorUtil.prependColorTag(isRangeEnabled ? "Unset Range Gear" : "Set Range Gear", config.defaultColourRanged()))
 							.setType(MenuAction.RUNELITE)
 							.onClick(e ->
-									toggleGearTag(gearTagSettings, finalItemId, false, true, false));
+									toggleGearTag(gearTagSettings, finalItemId, false, true, false, false));
 
 					parent.createMenuEntry(0)
 							.setOption(ColorUtil.prependColorTag(isMagicEnabled ? "Unset Magic Gear" : "Set Magic Gear", config.defaultColourMagic()))
 							.setType(MenuAction.RUNELITE)
 							.onClick(e ->
-									toggleGearTag(gearTagSettings, finalItemId, false, false, true));
+									toggleGearTag(gearTagSettings, finalItemId, false, false, true, false));
+
+					parent.createMenuEntry(0)
+							.setOption(ColorUtil.prependColorTag(isSpecialEnabled ? "Unset Special Gear" : "Set Special Gear", config.defaultColourSpecial()))
+							.setType(MenuAction.RUNELITE)
+							.onClick(e ->
+									toggleGearTag(gearTagSettings, finalItemId, false, false, false, true));
 
 				}
 			}
 		}
 	}
 
-	public void toggleGearTag(GearTagSettingsWithItemID tag, boolean toggleMelee, boolean toggleRanged, boolean toggleMagic) {
-		toggleGearTag(tag.origTag, tag.itemID, toggleMelee, toggleRanged, toggleMagic);
+	public void toggleGearTag(GearTagSettingsWithItemID tag, boolean toggleMelee, boolean toggleRanged, boolean toggleMagic, boolean toggleSpecial) {
+		toggleGearTag(tag.origTag, tag.itemID, toggleMelee, toggleRanged, toggleMagic, toggleSpecial);
 	}
 
-	public void toggleGearTag(GearTagSettings tag, int itemId, boolean toggleMelee, boolean toggleRanged, boolean toggleMagic) {
+	public void toggleGearTag(GearTagSettings tag, int itemId, boolean toggleMelee, boolean toggleRanged, boolean toggleMagic, boolean toggleSpecial) {
 		GearTagSettings newGearTagSettings = tag;
 		if (newGearTagSettings == null)
 			newGearTagSettings = new GearTagSettings();
@@ -430,6 +456,7 @@ public class GearSwitchAlertPlugin extends Plugin
 		newGearTagSettings.isMeleeGear = toggleMelee != newGearTagSettings.isMeleeGear;
 		newGearTagSettings.isRangeGear = toggleRanged != newGearTagSettings.isRangeGear;
 		newGearTagSettings.isMagicGear = toggleMagic != newGearTagSettings.isMagicGear;
+		newGearTagSettings.isSpecialGear = toggleSpecial != newGearTagSettings.isSpecialGear;
 		setTag(itemId, newGearTagSettings);
 	}
 
@@ -649,6 +676,28 @@ public class GearSwitchAlertPlugin extends Plugin
 		} else {
 			SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, "Profile Not Found!", null, JOptionPane.ERROR_MESSAGE));
 		}
+	}
+
+	@Subscribe
+	public void onMenuOptionClicked(MenuOptionClicked event) {
+		String option = event.getMenuOption();
+		if (!"Wear".equals(option) && !"Wield".equals(option) && !"Equip".equals(option)) {
+			return;
+		}
+		Widget widget = event.getWidget();
+		if (widget == null) return;
+		int itemId = widget.getItemId();
+		if (itemId == -1) return;
+		ItemStats stats = getItemStats(itemId);
+		if (stats == null || stats.getEquipment() == null) return;
+		if (stats.getEquipment().isTwoHanded()) {
+			pendingTwoHandedEquip = true;
+		}
+	}
+
+	@Subscribe
+	public void onGameTick(GameTick event) {
+		pendingTwoHandedEquip = false;
 	}
 
 	@Subscribe

@@ -52,6 +52,18 @@ public interface GearSwitchAlertConfig extends Config
 	{
 		return Color.BLUE;
 	}
+	@Alpha
+	@ConfigItem(
+			keyName = "defaultColourSpecial",
+			name = "Special Tag",
+			description = "Default special tag colour",
+			position = 3,
+			section = defaultColourSection
+	)
+	default Color defaultColourSpecial()
+	{
+		return new Color(0xCA00FF);
+	}
 	@ConfigSection(
 			name = "Tag Display Mode",
 			description = "How tags are displayed in the inventory",
