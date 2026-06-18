@@ -27,9 +27,11 @@ package com.gearswitch;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.WidgetItem;
 import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.ItemStats;
 import net.runelite.client.ui.overlay.WidgetItemOverlay;
 import net.runelite.client.util.ColorUtil;
 import net.runelite.client.util.ImageUtil;
@@ -86,29 +88,42 @@ class GearsInventoryTagsOverlay extends WidgetItemOverlay
             return;
         }
 
-        AttackType attackType = plugin.getAttackType();
-        Color color = null;
-        switch (attackType) {
-            case RANGE:
-                if(!gearTagSettings.isRangeGear)
-                    return;
-
-                color = config.defaultColourRanged();
-                break;
-            case MAGIC:
-                if(!gearTagSettings.isMagicGear)
-                    return;
-
-                color = config.defaultColourMagic();
-                break;
-            case MELEE:
-                if(!gearTagSettings.isMeleeGear)
-                    return;
-
-                color = config.defaultColourMelee();
-                break;
-            case OTHER:
+        if (plugin.isPendingTwoHandedEquip()) {
+            ItemStats shieldCheck = itemManager.getItemStats(itemId);
+            if (shieldCheck != null && shieldCheck.getEquipment() != null
+                    && shieldCheck.getEquipment().getSlot() == EquipmentInventorySlot.SHIELD.getSlotIdx()) {
                 return;
+            }
+        }
+
+        Color color = null;
+        if (plugin.isEquippedWeaponSpecial()) {
+            if (!gearTagSettings.isSpecialGear)
+                return;
+            if (isWeapon(itemId))
+                return;
+            color = config.defaultColourSpecial();
+        } else {
+            AttackType attackType = plugin.getAttackType();
+            switch (attackType) {
+                case RANGE:
+                    if (!gearTagSettings.isRangeGear)
+                        return;
+                    color = config.defaultColourRanged();
+                    break;
+                case MAGIC:
+                    if (!gearTagSettings.isMagicGear)
+                        return;
+                    color = config.defaultColourMagic();
+                    break;
+                case MELEE:
+                    if (!gearTagSettings.isMeleeGear)
+                        return;
+                    color = config.defaultColourMelee();
+                    break;
+                case OTHER:
+                    return;
+            }
         }
 
         Rectangle bounds = widgetItem.getCanvasBounds();
@@ -168,6 +183,12 @@ class GearsInventoryTagsOverlay extends WidgetItemOverlay
             fillCache.put(key, image);
         }
         return image;
+    }
+
+    private boolean isWeapon(int itemId) {
+        ItemStats stats = itemManager.getItemStats(itemId);
+        if (stats == null || stats.getEquipment() == null) return false;
+        return stats.getEquipment().getSlot() == EquipmentInventorySlot.WEAPON.getSlotIdx();
     }
 
     void invalidateCache()
